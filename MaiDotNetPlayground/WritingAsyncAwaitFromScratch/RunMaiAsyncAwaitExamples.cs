@@ -10,7 +10,7 @@ public class RunMaiAsyncAwaitExamples
         for (int i = 0; i < 100; i++)
         {
             int capturedValue = i; // Create a local variable to capture the current value of i
-            ThreadPool.QueueUserWorkItem(delegate
+            MaiThreadPool.QueueUserWorkItem(delegate
             {
                 Console.WriteLine(capturedValue);
                 Thread.Sleep(1000);
