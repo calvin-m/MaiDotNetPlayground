@@ -4,7 +4,7 @@ namespace MaiDotNetPlayground.WritingAsyncAwaitFromScratch;
 
 public static class MaiThreadPool
 {
-    private static readonly BlockingCollection<Action> s_workItems = new(); 
+    private static readonly BlockingCollection<(Action, ExecutionContext?)> s_workItems = new(); 
   /*
 There are lots of different data structures that I could use 
 but I'm going to use one called BlockingCollection 
@@ -16,7 +16,7 @@ if it's empty and that's what I want my threads to be doing.
 All of my threads and my thread pool are going to be trying to take things from this que to process it 
 and if there's nothing there I want them to just wait for something to be available
   */
-    public static void QueueUserWorkItem(Action action) => s_workItems.Add(action);
+    public static void QueueUserWorkItem(Action action) => s_workItems.Add((action, ExecutionContext.Capture()));
 
     static MaiThreadPool()
     {
@@ -26,8 +26,15 @@ and if there's nothing there I want them to just wait for something to be availa
             {
                 while(true)
                 {
-                    Action workItem = s_workItems.Take();
-                    workItem();
+                    (Action workItem, ExecutionContext? context) = s_workItems.Take();
+                    if(context is null)
+                    {
+                        workItem();
+                    }
+                    else
+                    {
+                        ExecutionContext.Run(context, state => ((Action)state!).Invoke(), workItem);
+                    }
                 }
             })
             { IsBackground = true }.Start();

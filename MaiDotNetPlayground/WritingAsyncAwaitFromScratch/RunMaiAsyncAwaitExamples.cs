@@ -11,7 +11,7 @@ public class RunMaiAsyncAwaitExamples
         for (int i = 0; i < 100; i++)
         {
             myValue.Value = i; 
-            ThreadPool.QueueUserWorkItem(delegate
+            MaiThreadPool.QueueUserWorkItem(delegate
             {
                 Console.WriteLine(myValue.Value);
                 Thread.Sleep(1000);
