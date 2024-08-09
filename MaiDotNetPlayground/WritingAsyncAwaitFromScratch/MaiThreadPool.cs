@@ -5,12 +5,22 @@ namespace MaiDotNetPlayground.WritingAsyncAwaitFromScratch;
 public static class MaiThreadPool
 {
     private static readonly BlockingCollection<Action> s_workItems = new(); 
-  
+  /*
+There are lots of different data structures that I could use 
+but I'm going to use one called BlockingCollection 
+and the beauty of BlockingCollection here is that you can store things into it 
+It's basically concurrent queue but when I want to take something out 
+I will block waiting to take out the thing 
+if it's empty and that's what I want my threads to be doing.
+
+All of my threads and my thread pool are going to be trying to take things from this que to process it 
+and if there's nothing there I want them to just wait for something to be available
+  */
     public static void QueueUserWorkItem(Action action) => s_workItems.Add(action);
 
     static MaiThreadPool()
     {
-        for(int i=0; i < Environment.ProcessorCount; i++)
+        for(int i=0; i < Environment.ProcessorCount; i++) // Environment.ProcessorCount: 8 in my MacBook Pro
         {
             new Thread( () =>
             {
