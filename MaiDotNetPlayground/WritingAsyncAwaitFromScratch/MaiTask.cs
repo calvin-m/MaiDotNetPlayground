@@ -135,21 +135,39 @@ Every time this exception is getting rethrown up the call stack, up the asynchro
             */
         }
     }
-    public void ContinueWith(Action action)
+    public MaiTask ContinueWith(Action action)
     {
+        MaiTask t = new();
+
+        Action callback = () =>
+        {
+            try
+            {
+                action();
+            }
+            catch(Exception e)
+            {
+                t.SetException(e);
+                return;
+            }
+
+            t.SetResult();
+        };
+
         lock (_lock)
         {
             if (_completed)
             {
-                MaiThreadPool.QueueUserWorkItem(action);
+                MaiThreadPool.QueueUserWorkItem(callback);
             }
             else
             {
-                _continuation = action;
+                _continuation = callback;
                 _context = ExecutionContext.Capture();
             }
 
         }
+        return t;
     }
 
     public static MaiTask Run(Action action)
