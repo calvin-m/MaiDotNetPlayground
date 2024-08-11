@@ -19,6 +19,9 @@ public class RunMaiAsyncAwaitExamples
             })); // Queueing/launching workitem(s) asynchronously.
         }
 
-        foreach(var t in tasks) t.Wait();
+        //foreach(var t in tasks) t.Wait();
+
+        // Instead of waiting every task above,
+        MaiTask.WhenAll(tasks).Wait();
     }
 }

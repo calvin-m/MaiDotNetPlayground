@@ -172,4 +172,55 @@ Every time this exception is getting rethrown up the call stack, up the asynchro
         });
         return t;
     }
+
+    public static MaiTask WhenAll(List<MaiTask> tasks)
+    {
+        MaiTask t = new();
+
+        if(tasks.Count == 0)
+        {
+            t.SetResult();
+        }
+        else
+        {
+            int remaining = tasks.Count;
+            Action continuation = () =>
+            {
+                /*
+These "tasks" are doing they might all be completing at the same time or not 
+and if they were to both complete at approximately the same time 
+this continuation two different threads might be trying to decrement this value 
+and if they each tried to do it without any synchronization 
+their operations might sort of stomp on each other 
+and we might lose some of the decrements which would be a big problem 
+because we wouldn't know when we actually hit zero.
+
+So I'm using this lightweight synchronization mechanism to ensure that 
+all of the decrements are tracked and that only the one that is actually 
+the last one to complete performs this work because as we saw if I dive into this 
+if multiple of them think that they're the last one and they try 
+and both complete it it's going to fail.
+
+And you said lightweight synchronization method as opposed to trying to do some locking around 
+that which I suppose you could have done
+
+Totally I could have had it taken a lock here but this is one place where it's really simple and
+straightforward to use basically the lowest level synchronization primitive that I have available to me 
+which is a lock-free Interlocked operation.
+                */
+
+                if(Interlocked.Decrement(ref remaining) == 0)
+                {
+                    // TODO: exceptions
+                    t.SetResult();
+                }
+            };
+
+            foreach (var task in tasks)
+            {
+                task.ContinueWith(continuation);
+            }
+        }
+        return t;
+    }
 }
