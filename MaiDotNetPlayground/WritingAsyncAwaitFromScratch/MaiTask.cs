@@ -292,4 +292,35 @@ which is a lock-free Interlocked operation.
         new Timer( _ => t.SetResult()).Change(timeout, -1);
         return t;
     }
+
+    public static MaiTask Iterate(IEnumerable<MaiTask> tasks)
+    {
+        MaiTask t = new();
+
+        IEnumerator<MaiTask> e = tasks.GetEnumerator();
+
+        void MoveNext()
+        {
+            try
+            {
+                if(e.MoveNext())
+                {
+                    MaiTask next = e.Current;
+                    next.ContinueWith(MoveNext);
+                    return;
+                }
+            }
+            catch(Exception e)
+            {
+                t.SetException(e);
+                return;
+            }
+            
+            t.SetResult();
+        }
+
+        MoveNext();
+
+        return t;
+    }
 }
