@@ -8,16 +8,17 @@ public class RunMaiAsyncAwaitExamples
         Console.WriteLine("Hello, Writing async/await from scratch in C# Stephen Toub!");
 
         AsyncLocal<int> myValue = new(); // ExecutionContext
+        List<MaiTask> tasks = new();
         for (int i = 0; i < 100; i++)
         {
             myValue.Value = i; 
-            MaiThreadPool.QueueUserWorkItem(delegate
+            tasks.Add(MaiTask.Run(delegate
             {
                 Console.WriteLine(myValue.Value);
                 Thread.Sleep(1000);
-            }); // Queueing/launching workitem(s) asynchronously.
+            })); // Queueing/launching workitem(s) asynchronously.
         }
 
-        Console.WriteLine("Finished queueing 100 work items.");
+        foreach(var t in tasks) t.Wait();
     }
 }

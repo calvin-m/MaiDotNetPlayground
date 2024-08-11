@@ -1,0 +1,175 @@
+﻿using System.Runtime.ExceptionServices;
+
+namespace MaiDotNetPlayground.WritingAsyncAwaitFromScratch;
+
+public class MaiTask
+{
+    private readonly object _lock = new();
+    private bool _completed;
+    private Exception? _exception;
+    private Action? _continuation;
+    private ExecutionContext? _context;
+
+    public bool IsCompleted
+    {
+        get
+        {
+            lock (_lock)
+            {
+                return _completed;
+            }
+        }
+    }
+    public void SetResult() => Complete(null);
+    public void SetException(Exception exception) => Complete(exception);
+    private void Complete(Exception? exception)
+    {
+        lock (_lock)
+        {
+            if (_completed) throw new InvalidOperationException("Stop messing up my code!");
+
+            _completed = true;
+            _exception = exception;
+
+            if (_continuation is not null)
+            {
+                MaiThreadPool.QueueUserWorkItem(delegate
+                {
+                    if (_context is null)
+                    {
+                        _continuation();
+                    }
+                    else
+                    {
+                        ExecutionContext.Run(_context, (object? state) => ((Action)state!).Invoke(), _continuation);
+                    }
+                });
+            }
+        }
+    }
+    public void Wait()
+    {
+        /*
+So I need to be able to block and anytime you want to kind of synchronously block waiting for something 
+you need some sort of synchronization primitive 
+in this case I'm going to use a manual reset event.
+
+so I'm going to wait for this manual reset event but only if I create one.
+and so I'm only going to create one if this task hasn't yet completed if it's already completed 
+there's nothing for me to wait for.
+
+So if it hasn't completed then I actually instantiate this 
+and now I need to Signal this ManualResetEvent
+to become in a signal State that anyone will waiting on it, will wake up when this task completes.
+How do I do?
+by doing  "ContinueWith(mres.Set)" 
+so now I'm implementing Wait() in terms of ContinueWith by saying when this task completes,
+hook up a delegate that will invoke "ManualResetEventSlim.Set()" which will then cause 
+this "mres?.Wait()" to wake up.
+
+ManualResetEventSlim is literally the slim, lighter Wait() version of ManualResetEvent 
+and because you're not going to be waiting long 
+it would be appropriate to use the light / the diet-coke version.
+
+It's actually appropriate to use the diet coke version in 99% of situations 
+and better to use the diet coke version.
+In this case the ManualResetEvent is just a very thin wrapper around the OS's the kernels equivalent primitive.
+ and that means that every time I do any operation on it 
+ I'm kind of paying a fair amount of overhead to dive down into the kernel.
+
+ManualResetEventSlim is a much lighter weight version of it 
+that's all implemented up in user code in .Net world,
+basically just in terms of  monitors which is what lock is also built on top of.
+
+The only time it's less appropriate to use it is if you actually need one of those kernel level things 
+which you typically only need if you're doing something more esoteric with Wait Handles in a broader.
+        */
+        ManualResetEventSlim? mres = null;
+        lock (_lock)
+        {
+            if (!_completed)
+            {
+                mres = new ManualResetEventSlim();
+                ContinueWith(mres.Set);
+            }
+        }
+
+        mres?.Wait();
+
+        if (_exception is not null)
+        {
+            // throw _exception;
+            /*
+            If You tab an existing exception object that has previously been thrown,
+            that exception contains a stack trace 
+            it contains some what's referred to as the Watson bucket 
+            which contains sort of aggregatable information about where that exception came from,
+            for use in postmortem debugging and Diagnostics.
+
+            When I rethrow exception like "throw _exception", that's going to overwrite all of that information 
+            so I kind of don't want to do that. 
+            One common way around that and that was the only way around that 
+            when task initially hit the scene and .NET framework 4.0, was to wrap it in another exception. 
+
+            */
+
+            //throw new AggregateException("", _exception);
+            /*
+            so you might wrap this in and have like an inner exception.
+            now throwing this will populate this "new Exception(...)" stack trace 
+            this "_exception" will still be available as the inner exception and it won't be touched 
+            so all of the stack Trace will stay in place 
+            */
+            ExceptionDispatchInfo.Throw(_exception);
+            /*
+Since task was introduced, something that was very useful for
+Await is another sort of pretty lowlevel type called ExceptionDispatchInfo.
+The name doesn't really matter but what this does is it takes
+that exception and it throws it, but rather than overwriting the current stack trace,
+it appends the current stack trace and so for anyone who's looked at a an exception 
+that's propagated through multiple Awaits, you might be used to seeing a bit of a stack trace 
+and then a little dotted line that says 
+continue that or original throw location and then more stack Trace 
+Every time this exception is getting rethrown up the call stack, up the asynchronous call stack,
+ more state is being appended to that stack and that's all handled via this.
+            */
+        }
+    }
+    public void ContinueWith(Action action)
+    {
+        lock (_lock)
+        {
+            if (_completed)
+            {
+                MaiThreadPool.QueueUserWorkItem(action);
+            }
+            else
+            {
+                _continuation = action;
+                _context = ExecutionContext.Capture();
+            }
+
+        }
+    }
+
+    public static MaiTask Run(Action action)
+    {
+        MaiTask t = new();
+
+        MaiThreadPool.QueueUserWorkItem(() =>
+        {
+            try
+            {
+                action();
+            }
+            catch(Exception e)
+            {
+                t.SetException(e);
+                return;
+            }
+
+            t.SetResult();
+        });
+        return t;
+    }
+}

@@ -34,6 +34,30 @@ and if there's nothing there I want them to just wait for something to be availa
                     else
                     {
                         ExecutionContext.Run(context, state => ((Action)state!).Invoke(), workItem);
+                        // The above code can be rewritten more readably but less efficiently as follow:
+                        //ExecutionContext.Run(context, delegate { workItem(); }, null); // Functionally the same but a little less efficient
+                        /*
+The difference between these lines is
+
+ExecutionContext.Run actually takes a State argument 
+and then that State argument is passed into that ContextCallback delegate 
+so that delegate is just an action of object basically, just with a different name.
+
+So you can pass State into it. In fact if I I should be able to browse to the definition here
+and if I look at context call back all you can see you can see 
+it's just a delegate that takes a state object.
+This was introduced before action and action of object were added.
+So it's a you know a dedicated delegate type. If we were doing it again today this type wouldn't exist.
+It would just be action of object.
+
+The reason I said this is for efficiency is because 
+this version "delegate { workItem(); }" has what's called a closure 
+and it needs to reference this work item that's defined out here.
+So there's actually multiple objects being allocated here to be able to capture that work item into some object 
+and create a delegate that's been passed in and here I can avoid that.
+In fact I can see that it's being avoided and that there's no closure by using the static keyword in
+
+                        */
                     }
                 }
             })
