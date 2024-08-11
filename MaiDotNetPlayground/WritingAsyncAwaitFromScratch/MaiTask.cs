@@ -170,6 +170,50 @@ Every time this exception is getting rethrown up the call stack, up the asynchro
         return t;
     }
 
+    public MaiTask ContinueWith(Func<MaiTask> action)
+    {
+        MaiTask t = new();
+
+        Action callback = () =>
+        {
+            try
+            {
+                MaiTask next = action();
+                next.ContinueWith(delegate
+                {
+                    if(next._exception is not null)
+                    {
+                        t.SetException(next._exception);
+                    }
+                    else
+                    {
+                        t.SetResult();
+                    }
+                });
+            }
+            catch(Exception e)
+            {
+                t.SetException(e);
+                return;
+            }
+        };
+
+        lock (_lock)
+        {
+            if (_completed)
+            {
+                MaiThreadPool.QueueUserWorkItem(callback);
+            }
+            else
+            {
+                _continuation = callback;
+                _context = ExecutionContext.Capture();
+            }
+
+        }
+        return t;
+    }
+
     public static MaiTask Run(Action action)
     {
         MaiTask t = new();

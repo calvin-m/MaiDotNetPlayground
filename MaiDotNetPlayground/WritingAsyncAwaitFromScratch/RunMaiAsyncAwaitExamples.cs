@@ -31,6 +31,14 @@ public class RunMaiAsyncAwaitExamples
         MaiTask.Delay(3000).ContinueWith(delegate
         {
             Console.Write("World!");
+            return MaiTask.Delay(3000).ContinueWith(delegate
+            {
+                Console.Write(" And Calvin!");
+                return MaiTask.Delay(3000).ContinueWith(delegate
+                {
+                    Console.Write(" How are you?");
+                });
+            });
         }).Wait();
     }
 }
