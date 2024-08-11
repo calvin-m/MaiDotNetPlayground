@@ -223,4 +223,11 @@ which is a lock-free Interlocked operation.
         }
         return t;
     }
+
+    public static MaiTask Delay(int timeout)
+    {
+        MaiTask t = new();
+        new Timer( _ => t.SetResult()).Change(timeout, -1);
+        return t;
+    }
 }

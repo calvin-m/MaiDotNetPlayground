@@ -1,5 +1,5 @@
 ﻿using MaiDotNetPlayground.WritingAsyncAwaitFromScratch;
 
-RunMaiAsyncAwaitExamples.Run();
+RunMaiAsyncAwaitExamples.RunDelayExample();
 
 Console.ReadLine();

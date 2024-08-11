@@ -24,4 +24,14 @@ public class RunMaiAsyncAwaitExamples
         // Instead of waiting every task above,
         MaiTask.WhenAll(tasks).Wait();
     }
+
+    public static void RunDelayExample()
+    {
+        Console.Write("Hello, ");
+        MaiTask.Delay(3000).ContinueWith(delegate
+        {
+            Console.Write("World!");
+        });
+        Console.ReadLine();
+    }
 }
