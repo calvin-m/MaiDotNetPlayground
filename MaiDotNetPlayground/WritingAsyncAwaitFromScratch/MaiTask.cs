@@ -1,4 +1,5 @@
-﻿using System.Runtime.ExceptionServices;
+﻿using System.Runtime.CompilerServices;
+using System.Runtime.ExceptionServices;
 
 namespace MaiDotNetPlayground.WritingAsyncAwaitFromScratch;
 
@@ -10,6 +11,16 @@ public class MaiTask
     private Action? _continuation;
     private ExecutionContext? _context;
 
+    public struct Awaiter(MaiTask t) : INotifyCompletion
+    {
+        public Awaiter GetAwaiter() => this;
+        public bool IsCompleted => t.IsCompleted;
+        public void OnCompleted(Action continuation) => t.ContinueWith(continuation);
+
+        public void GetResult() => t.Wait();
+    }
+
+    public Awaiter GetAwaiter() => new(this);
     public bool IsCompleted
     {
         get

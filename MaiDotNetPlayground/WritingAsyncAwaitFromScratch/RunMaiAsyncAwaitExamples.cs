@@ -42,16 +42,29 @@ public class RunMaiAsyncAwaitExamples
         }).Wait();
     }
 
+    // public static void RunIterateExample()
+    // {
+    //     MaiTask.Iterate(PrintAsync()).Wait();
+    // }
+    
+    // static IEnumerable<MaiTask> PrintAsync()
+    // {
+    //     for(int i = 0; ; i++)
+    //     {
+    //         yield return MaiTask.Delay(1000);
+    //         Console.WriteLine(i);
+    //     }
+    // }
     public static void RunIterateExample()
     {
-        MaiTask.Iterate(PrintAsync()).Wait();
+        PrintAsync().Wait();
     }
     
-    static IEnumerable<MaiTask> PrintAsync()
+    static async Task PrintAsync()
     {
         for(int i = 0; ; i++)
         {
-            yield return MaiTask.Delay(1000);
+            await MaiTask.Delay(1000);
             Console.WriteLine(i);
         }
     }
