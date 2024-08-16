@@ -1,3 +1,5 @@
-﻿using MaiDotNetPlayground.WritingAsyncAwaitFromScratch;
+﻿using MaiDotNetPlayground.DeepDiveOnLinq;
+using MaiDotNetPlayground.WritingAsyncAwaitFromScratch;
 
-RunMaiAsyncAwaitExamples.RunIterateExample();
+//RunMaiAsyncAwaitExamples.RunIterateExample();
+RunDeepDiveOnLinqExamples.Run();
