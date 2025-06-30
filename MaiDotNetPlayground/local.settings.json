@@ -1,6 +1,8 @@
 {
   "IsEncrypted": false,
   "Values": {
+    "AppConfig": "",
+
     "AzureWebJobsStorage": "UseDevelopmentStorage=true",
     "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated",
     "APPINSIGHTS_INSTRUMENTATIONKEY": "11111111-2222-3333-4444-555555555555",
